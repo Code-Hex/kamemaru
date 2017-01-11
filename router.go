@@ -7,7 +7,7 @@ type List struct {
 	Tags []string `json:"tags"`
 }
 
-func (k *kamemaru) Router() {
+func (k *kamemaru) Route() {
 	// front end
 	k.Echo.File("/", "public/index.html")
 
@@ -18,5 +18,5 @@ func (k *kamemaru) Router() {
 }
 
 func (k *kamemaru) RunServe() {
-	k.Echo.Start(fmt.Sprintf(":%d", k.Env.Port))
+	k.Echo.Start(fmt.Sprintf(":%s", Port))
 }

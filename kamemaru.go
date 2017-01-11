@@ -6,63 +6,98 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo"
+	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
 	"github.com/uber-go/zap"
 )
 
-type Env struct {
+var (
 	DeployMode string
-	Logger     *zap.Logger
-	Port       int
-}
+	LogPath    string
+	Port       string
+)
 
 type kamemaru struct {
-	Echo *echo.Echo
-	Env
+	Echo   *echo.Echo
+	Logger zap.Logger
 }
 
 func New() *kamemaru {
-	kame := &kamemaru{
-		Echo: echo.New(),
-	}
-	err := envconfig.Process("turtle", &kame.Env)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	kame := &kamemaru{Echo: echo.New()}
 	kame.SetDeployMode()
 
 	return kame
 }
 
+func (k *kamemaru) Run() int {
+	k.Route()
+	return 0
+}
+
 func (k *kamemaru) SetDeployMode() {
-	switch k.Env.DeployMode {
+	switch DeployMode {
 	case "develop":
 		k.SetLogger(os.Stderr)
 	case "staging":
-		logdir := os.Getenv("LOG_DIR")
-		if logdir == "" {
-			log.Fatal("LOG_DIR env was not set")
-		}
-
-		f, err := os.Create(filepath.Join(logdir, "laputa.log"))
+		err := os.MkdirAll(LogPath, 0755)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
+
+		f, err := rotatelogs.New(
+			filepath.Join(LogPath, "access_log.%Y%m%d%H%ls M"),
+			rotatelogs.WithLinkName(filepath.Join(LogPath, "access_log")),
+			rotatelogs.WithMaxAge(24*time.Hour),
+			rotatelogs.WithRotationTime(time.Hour),
+		)
+		if err != nil {
+			log.Fatalf("failed to create rotatelogs: %s", err)
+		}
+
 		defer f.Close()
 
-		k.SetLogger(f)
+		k.SetLogger(zap.AddSync(f))
 	default:
-		log.Fatal("LAPUTA_MODE env was not set")
+		log.Fatal("kamemaru.Deploymode was not set")
 	}
 
-	k.Logger.Info("Graceful start laputa...", zap.Int("Port", l.env.Port))
+	k.Logger.Info("Graceful start kamemaru...", zap.String("Port", Port))
 }
 
-func (k *kamemaru) SetLogger(Out zap.WriteSyncer) *zap.Logger {
+func (k *kamemaru) SetLogger(Out zap.WriteSyncer) {
 	k.Logger = zap.New(
-		zap.NewTextEncoder(zap.TextTimeFormat(time.ANSIC)),
+		zap.NewJSONEncoder(JSTFormatter("time")),
 		zap.AddCaller(), // Add line number option
 		zap.Output(Out),
 	)
+
+	k.Echo.Use(k.loghandler())
+}
+
+func (k *kamemaru) loghandler() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) (err error) {
+			if err = next(c); err != nil {
+				c.Error(err)
+			}
+
+			w, r := c.Response(), c.Request()
+			k.Logger.Info(
+				"Detect access",
+				zap.Int("statuscode", w.Status),
+				zap.String("method", r.Method),
+				zap.String("path", r.URL.Path),
+				zap.String("useragent", r.UserAgent()),
+				zap.String("remote_ip", r.RemoteAddr),
+			)
+			return nil
+		}
+	}
+}
+
+func JSTFormatter(key string) zap.TimeFormatter {
+	return zap.TimeFormatter(func(t time.Time) zap.Field {
+		jst := time.FixedZone("Asia/Tokyo", 9*3600)
+		return zap.String(key, t.In(jst).Format(time.ANSIC))
+	})
 }

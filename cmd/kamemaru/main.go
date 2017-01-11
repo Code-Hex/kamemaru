@@ -1,7 +1,11 @@
 package main
 
-import "os"
+import (
+	"os"
+
+	"github.com/Code-Hex/kamemaru"
+)
 
 func main() {
-	os.Exit()
+	os.Exit(kamemaru.New().Run())
 }
