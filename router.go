@@ -10,4 +10,5 @@ func (k *kamemaru) Route() {
 	//k.Echo.File("/", "assets/index.html")
 	// backend api
 	k.Echo.POST("/api/v1/list", k.List)
+	k.Echo.POST("/api/v1/download", k.YoutubeDownload)
 }
