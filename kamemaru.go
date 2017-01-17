@@ -26,7 +26,8 @@ var (
 
 type (
 	config struct {
-		DB database `toml:"database"`
+		DB    database `toml:"database"`
+		Redis redis    `toml:"redis"`
 	}
 
 	database struct {
@@ -36,6 +37,12 @@ type (
 		Password string `toml:"pass"`
 		Port     int    `toml:"port"`
 		SSLmode  string `toml:"sslmode"`
+	}
+
+	redis struct {
+		Host     string `toml:"host"`
+		Network  string `toml:"network"`
+		Password string `toml:"password"`
 	}
 )
 
@@ -109,7 +116,6 @@ func (k *kamemaru) setup() *kamemaru {
 		if err != nil {
 			log.Fatalf("failed to create rotatelogs: %s", err)
 		}
-
 		defer f.Close()
 
 		k.setlogger(zap.AddSync(f))
@@ -134,7 +140,7 @@ func (k *kamemaru) setup() *kamemaru {
 		log.Fatalf("Failed to connect database: %s", err.Error())
 	}
 
-	if err = k.use(); err != nil {
+	if err = k.use(config); err != nil {
 		log.Fatalf("Failed to use middleware: %s", err.Error())
 	}
 

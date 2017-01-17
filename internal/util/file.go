@@ -9,6 +9,11 @@ port = 5432
 sslmode = "disable"
 user = ""
 pass = ""
+
+[redis]
+network = "tcp"
+host = "localhost:6379"
+password = ""
 `
 
 func CreateConfig() error {
@@ -17,7 +22,6 @@ func CreateConfig() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
