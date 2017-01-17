@@ -28,3 +28,4 @@ log
 kamemaru
 bindata.go
 node_modules
+config.toml
