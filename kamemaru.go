@@ -1,6 +1,7 @@
 package kamemaru
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -8,6 +9,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/BurntSushi/toml"
+	"github.com/Code-Hex/kamemaru/internal/util"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/labstack/echo"
 	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
 	"github.com/lestrrat/go-server-starter/listener"
@@ -19,9 +24,25 @@ var (
 	LogPath    string
 )
 
+type (
+	config struct {
+		DB database `toml:"database"`
+	}
+
+	database struct {
+		DBName   string `toml:"dbname"`
+		Host     string `toml:"host"`
+		UserName string `toml:"user"`
+		Password string `toml:"pass"`
+		Port     int    `toml:"port"`
+		SSLmode  string `toml:"sslmode"`
+	}
+)
+
 type kamemaru struct {
 	Echo   *echo.Echo
 	Logger zap.Logger
+	DB     *gorm.DB
 }
 
 func New() *kamemaru {
@@ -31,6 +52,8 @@ func New() *kamemaru {
 
 func (k *kamemaru) Run() int {
 	k.Route()
+	defer k.DB.Close()
+
 	if err := k.RunServer(); err != nil {
 		k.Logger.Error("Failed to run server", zap.String("reason", err.Error()))
 		return 1
@@ -94,7 +117,26 @@ func (k *kamemaru) setup() *kamemaru {
 		log.Fatal("kamemaru.Deploymode was not set")
 	}
 
-	k.use()
+	var (
+		err    error
+		config config
+	)
+	// Skip this process if already exist "config.toml"
+	if err = util.CreateConfig(); err != nil {
+		log.Fatalf("Failed to create config toml: %s", err.Error())
+	}
+
+	if _, err = toml.DecodeFile("config.toml", &config); err != nil {
+		log.Fatalf("Failed to parse config toml: %s", err.Error())
+	}
+
+	if k.DB, err = gorm.Open("postgres", dbconf(config)); err != nil {
+		log.Fatalf("Failed to connect database: %s", err.Error())
+	}
+
+	if err = k.use(); err != nil {
+		log.Fatalf("Failed to use middleware: %s", err.Error())
+	}
 
 	return k
 }
@@ -109,4 +151,33 @@ func (k *kamemaru) setlogger(Out zap.WriteSyncer) {
 
 func serve(server *http.Server, l net.Listener) error {
 	return server.Serve(l)
+}
+
+func dbconf(conf config) string {
+	var q string
+	if conf.DB.Host != "" {
+		q += "host=" + conf.DB.Host
+	}
+
+	if conf.DB.DBName != "" {
+		q += " dbname=" + conf.DB.DBName
+	}
+
+	if conf.DB.UserName != "" {
+		q += " user=" + conf.DB.UserName
+	}
+
+	if conf.DB.Password != "" {
+		q += " password=" + conf.DB.Password
+	}
+
+	if conf.DB.SSLmode != "" {
+		q += " sslmode=" + conf.DB.SSLmode
+	}
+
+	if conf.DB.Port > 0 {
+		q += fmt.Sprintf(" port=%d", conf.DB.Port)
+	}
+
+	return q
 }
