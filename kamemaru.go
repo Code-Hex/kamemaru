@@ -67,7 +67,6 @@ func New() *kamemaru {
 
 func (k *kamemaru) Run() int {
 	defer k.DB.Close()
-
 	if err := k.RunServer(); err != nil {
 		k.Logger.Error("Failed to run server", zap.String("reason", err.Error()))
 		return 1
@@ -156,7 +155,7 @@ func (k *kamemaru) setup() *kamemaru {
 		log.Fatalf("Failed to create secret: %s", err.Error())
 	}
 
-	return nil
+	return k
 }
 
 func (k *kamemaru) setlogger(Out zap.WriteSyncer) {
