@@ -28,8 +28,8 @@ func IsBMP(buf []byte) bool {
 }
 
 func IsImage(buf []byte) bool {
-	for _, k := range imageList {
-		if imageList[k](buf) {
+	for _, v := range imageList {
+		if v(buf) {
 			return true
 		}
 	}
