@@ -12,7 +12,7 @@ func main() {
 		panic(err)
 	}
 
-	user, image := new(database.User), new(database.Image)
+	user, image := database.UserTable, database.ImageTable
 	db.DropTableIfExists(user, image)
 	db.AutoMigrate(user, image)
 	defer db.Close()
