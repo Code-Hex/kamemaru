@@ -5,31 +5,17 @@ import (
 	"net/http"
 	"time"
 
-	session "github.com/Code-Hex/echo-session"
 	static "github.com/Code-Hex/echo-static"
-	"github.com/Code-Hex/saltissimo"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/uber-go/zap"
 )
 
-func (k *kamemaru) use() error {
+func (k *kamemaru) use() {
 	k.Echo.Use(k.LogHandler())
 	k.Echo.Use(static.ServeRoot("/static", NewAssets("assets")))
 	k.Echo.Use(middleware.Recover())
-	rand, err := saltissimo.RandomBytes(saltissimo.SaltLength)
-	if err != nil {
-		return err
-	}
-	store, err := session.NewRedisStore(32, "tcp", "localhost:6379", "", rand)
-	if err != nil {
-		return err
-	}
-
-	k.Echo.Use(session.Sessions("kamemaru-session", store))
-
-	return nil
 }
 
 func (k *kamemaru) LogHandler() echo.MiddlewareFunc {

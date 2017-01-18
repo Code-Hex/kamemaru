@@ -2,10 +2,16 @@ package kamemaru
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/Code-Hex/kamemaru/internal/database"
 	"github.com/Code-Hex/kamemaru/internal/youtube"
+	"github.com/Code-Hex/saltissimo"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"golang.org/x/sync/errgroup"
 )
@@ -22,6 +28,41 @@ func (k *kamemaru) List(c echo.Context) error {
 	var list List
 	json.NewDecoder(c.Request().Body).Decode(&list)
 	return c.JSON(http.StatusOK, list)
+}
+
+type User struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"min=8, max=16, required"`
+}
+
+// success: 201 failed: 409
+func (k *kamemaru) register(c echo.Context) (err error) {
+	u := new(User)
+	if err = c.Bind(u); err != nil {
+		return c.JSON(http.StatusInternalServerError, whyError(err))
+	}
+	if err = c.Validate(u); err != nil {
+		return c.JSON(http.StatusBadRequest, whyError(err))
+	}
+
+	username, password := u.Username, u.Password
+
+	if database.IsExistUser(k.DB, username) {
+		return c.JSON(http.StatusConflict, whyError(fmt.Errorf("Already exist user:%s", username)))
+	}
+
+	var udb database.User
+	udb.Pass, udb.Salt, err = saltissimo.HexHash(sha256.New, password)
+	if err != nil {
+		return c.JSON(http.StatusConflict, whyError(fmt.Errorf("Failed to create hash:%s", err.Error())))
+	}
+	udb.Name = username
+
+	if err = k.DB.Create(&udb).Error; err != nil {
+		return c.JSON(http.StatusConflict, whyError(fmt.Errorf("Failed to create user:%s", err.Error())))
+	}
+
+	return c.JSON(http.StatusCreated, echo.Map{"status": "success"})
 }
 
 type (
@@ -71,4 +112,50 @@ func (k *kamemaru) YoutubeDownload(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, data)
+}
+
+func (k *kamemaru) login(c echo.Context) error {
+	u := new(User)
+	if err := c.Bind(u); err != nil {
+		return c.JSON(http.StatusInternalServerError, whyError(err))
+	}
+	if err := c.Validate(u); err != nil {
+		return c.JSON(http.StatusBadRequest, whyError(err))
+	}
+
+	username, password := u.Username, u.Password
+
+	var dbu database.User
+	k.DB.Where("name = ?", username).First(database.UserTable).Scan(&dbu)
+
+	isSame, err := saltissimo.CompareHexHash(sha256.New, password, dbu.Pass, dbu.Salt)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, whyError(err))
+	}
+
+	if isSame {
+		t, err := k.createToken(username)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, whyError(err))
+		}
+		return c.JSON(http.StatusOK, echo.Map{"status": "success", "token": t})
+	}
+	return c.JSON(http.StatusUnauthorized, whyError(fmt.Errorf("invalid user")))
+}
+
+func (k *kamemaru) createToken(username string) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+	claims["user"] = username
+	claims["iat"] = time.Now().Unix()
+	claims["exp"] = time.Now().Add(time.Hour * 36).Unix()
+
+	return token.SignedString(k.JWTSecret)
+}
+
+func whyError(err error) echo.Map {
+	return echo.Map{
+		"status": "failed",
+		"reason": err.Error(),
+	}
 }
