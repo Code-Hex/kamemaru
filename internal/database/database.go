@@ -10,8 +10,8 @@ var (
 type User struct {
 	gorm.Model
 	Name    string `gorm:"type:varchar(255);not null"`
-	Pass    string `gorm:"type:varchar(64);not null"`
-	Salt    string `gorm:"type:varchar(64);not null"`
+	Pass    string `gorm:"type:varchar(255);not null"`
+	Salt    string `gorm:"type:varchar(255);not null"`
 	IconURL string
 	Images  []Image
 }
@@ -19,7 +19,7 @@ type User struct {
 type Image struct {
 	gorm.Model
 	Name        string `gorm:"type:varchar(255);not null"`
-	Ext         string `gorm:"type:varchar(8);not null"`
+	Ext         string `gorm:"type:varchar(16);not null"`
 	Hash        string `gorm:"type:varchar(255);not null"`
 	OriginalURL string `gorm:"type:varchar(255);not null"`
 }
