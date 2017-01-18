@@ -13,6 +13,8 @@ import (
 )
 
 func (k *kamemaru) use() {
+	k.Echo.HTTPErrorHandler = k.ErrorHandler
+
 	k.Echo.Use(k.LogHandler())
 	k.Echo.Use(static.ServeRoot("/static", NewAssets("assets")))
 	k.Echo.Use(middleware.Recover())
@@ -38,6 +40,37 @@ func (k *kamemaru) LogHandler() echo.MiddlewareFunc {
 			return err
 		}
 	}
+}
+
+func (k *kamemaru) ErrorHandler(err error, c echo.Context) {
+	var (
+		code = http.StatusInternalServerError
+		msg  interface{}
+	)
+
+	if he, ok := err.(*echo.HTTPError); ok {
+		code = he.Code
+		msg = he.Message
+	} else {
+		msg = http.StatusText(code)
+	}
+	if _, ok := msg.(string); ok {
+		msg = echo.Map{"message": msg}
+	}
+
+	if !c.Response().Committed {
+		if c.Request().Method == echo.HEAD { // Issue #608
+			if err := c.NoContent(code); err != nil {
+				goto ERROR
+			}
+		} else {
+			if err := c.JSON(code, msg); err != nil {
+				goto ERROR
+			}
+		}
+	}
+ERROR:
+	k.Logger.Error("Error", zap.String("reason", err.Error()))
 }
 
 func JSTFormatter(key string) zap.TimeFormatter {

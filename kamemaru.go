@@ -146,13 +146,13 @@ func (k *kamemaru) setup() *kamemaru {
 		log.Fatalf("Failed to connect database: %s", err.Error())
 	}
 
-	if err = k.route(config); err != nil {
-		log.Fatalf("Failed to use middleware: %s", err.Error())
-	}
-
 	k.JWTSecret, err = saltissimo.RandomBytes(saltissimo.SaltLength)
 	if err != nil {
 		log.Fatalf("Failed to create secret: %s", err.Error())
+	}
+
+	if err = k.route(config); err != nil {
+		log.Fatalf("Failed to use middleware: %s", err.Error())
 	}
 
 	return k

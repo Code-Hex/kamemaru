@@ -12,6 +12,7 @@ import (
 	"github.com/Code-Hex/kamemaru/internal/youtube"
 	"github.com/Code-Hex/saltissimo"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/k0kubun/pp"
 	"github.com/labstack/echo"
 	"golang.org/x/sync/errgroup"
 )
@@ -31,8 +32,8 @@ func (k *kamemaru) List(c echo.Context) error {
 }
 
 type User struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"min=8, max=16, required"`
+	Username string `validate:"required"`
+	Password string `validate:"min=8,max=16"`
 }
 
 // success: 201 failed: 409
@@ -42,6 +43,7 @@ func (k *kamemaru) register(c echo.Context) (err error) {
 		return c.JSON(http.StatusInternalServerError, whyError(err))
 	}
 	if err = c.Validate(u); err != nil {
+		pp.Println(err.Error())
 		return c.JSON(http.StatusBadRequest, whyError(err))
 	}
 
@@ -62,7 +64,11 @@ func (k *kamemaru) register(c echo.Context) (err error) {
 		return c.JSON(http.StatusConflict, whyError(fmt.Errorf("Failed to create user:%s", err.Error())))
 	}
 
-	return c.JSON(http.StatusCreated, echo.Map{"status": "success"})
+	t, err := k.createToken(username)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, whyError(err))
+	}
+	return c.JSON(http.StatusCreated, echo.Map{"status": "success", "token": t})
 }
 
 type (
