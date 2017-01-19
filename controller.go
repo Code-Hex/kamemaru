@@ -161,7 +161,6 @@ func (k *kamemaru) Upload(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, whyError(err))
 	}
-	pp.Println(form)
 
 	files := form.File["files"]
 	if len(files) == 0 {

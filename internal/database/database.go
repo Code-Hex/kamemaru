@@ -18,11 +18,12 @@ type User struct {
 
 type Image struct {
 	gorm.Model
-	UserID      uint
-	Name        string `gorm:"type:varchar(255);not null"`
-	Ext         string `gorm:"type:varchar(16);not null"`
-	Hash        string `gorm:"type:varchar(255);not null"`
-	OriginalURL string `gorm:"type:varchar(255);not null"`
+	UserID       uint
+	Name         string `gorm:"type:varchar(255);not null"`
+	Ext          string `gorm:"type:varchar(16);not null"`
+	Hash         string `gorm:"type:varchar(255);not null"`
+	OriginalURL  string `gorm:"type:varchar(255);not null"`
+	Resize400URL string `gorm:"type:varchar(255);not null"`
 }
 
 func IsExistUser(db *gorm.DB, username string) bool {

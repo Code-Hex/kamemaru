@@ -1,9 +1,11 @@
 package kamemaru
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
+	"image"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -15,6 +17,7 @@ import (
 	"github.com/Code-Hex/kamemaru/internal/util"
 	"github.com/Code-Hex/saltissimo"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/disintegration/imaging"
 	"github.com/labstack/echo"
 )
 
@@ -72,6 +75,16 @@ func (k *kamemaru) StoreImageFiles(ctx context.Context, c echo.Context, fdata <-
 				user := c.Get("user").(*jwt.Token)
 				claims := user.Claims.(jwt.MapClaims)
 
+				img, _, err := image.Decode(bytes.NewReader(f.buf))
+				if err != nil {
+					return c.JSON(http.StatusConflict, whyError(err))
+				}
+				img400 := imaging.Fill(img, 400, 400, imaging.Center, imaging.Lanczos)
+				path400 := filepath.Join("images", "400", hash+"."+f.extension)
+				if err := imaging.Save(img400, path400); err != nil {
+					return c.JSON(http.StatusConflict, whyError(err))
+				}
+
 				var imgdb database.Image
 				imgdb.UserID = uint(claims["id"].(float64))
 				split := strings.Split(f.filename, ".")
@@ -83,7 +96,9 @@ func (k *kamemaru) StoreImageFiles(ctx context.Context, c echo.Context, fdata <-
 				imgdb.Hash = hash
 				imgdb.Ext = f.extension
 				imgdb.OriginalURL = "/" + path
-				if err = k.DB.Create(&imgdb).Error; err != nil {
+				imgdb.Resize400URL = "/" + path400
+
+				if err := k.DB.Create(&imgdb).Error; err != nil {
 					return c.JSON(http.StatusConflict, whyError(fmt.Errorf("Failed to create user:%s", err.Error())))
 				}
 			}
