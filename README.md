@@ -3,7 +3,7 @@ Imgur ライクなサービスを作成する。
 
 # Public API Route
  - `/api/fetch`
-   - Param: offset=<num>
+   - Param: offset=`<num>`
  - `/register`
  - `/login`
 
@@ -12,6 +12,6 @@ Imgur ライクなサービスを作成する。
  - `/api/v1/upload`
  
  # TODO
- 
+ - [ ] テストの作成
  - [ ] フィルターの実装
  - [ ] Streaming API の実装（リアルタイムでアップロードされたファイルを見る）
