@@ -1,6 +1,7 @@
 package kamemaru
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -8,6 +9,14 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Code-Hex/kamemaru/internal/util"
+	"github.com/Code-Hex/kamemaru/internal/validator"
+	"github.com/Code-Hex/saltissimo"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+
+	"github.com/BurntSushi/toml"
 	"github.com/labstack/echo"
 	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
 	"github.com/lestrrat/go-server-starter/listener"
@@ -19,18 +28,45 @@ var (
 	LogPath    string
 )
 
+// for config.toml
+type (
+	config struct {
+		DB    db    `toml:"database"`
+		Redis redis `toml:"redis"`
+	}
+
+	db struct {
+		DBName   string `toml:"dbname"`
+		Host     string `toml:"host"`
+		UserName string `toml:"user"`
+		Password string `toml:"pass"`
+		Port     int    `toml:"port"`
+		SSLmode  string `toml:"sslmode"`
+	}
+
+	redis struct {
+		Host     string `toml:"host"`
+		Network  string `toml:"network"`
+		Password string `toml:"password"`
+	}
+)
+
+// for kamemaru project
 type kamemaru struct {
-	Echo   *echo.Echo
-	Logger zap.Logger
+	Echo      *echo.Echo
+	Logger    zap.Logger
+	DB        *gorm.DB
+	JWTSecret []byte
 }
 
 func New() *kamemaru {
 	kame := &kamemaru{Echo: echo.New()}
+	kame.Echo.Validator = validator.New()
 	return kame.setup()
 }
 
 func (k *kamemaru) Run() int {
-	k.Route()
+	defer k.DB.Close()
 	if err := k.RunServer(); err != nil {
 		k.Logger.Error("Failed to run server", zap.String("reason", err.Error()))
 		return 1
@@ -72,7 +108,7 @@ func (k *kamemaru) setup() *kamemaru {
 	case "develop":
 		k.setlogger(os.Stderr)
 	case "staging":
-		err := os.MkdirAll(LogPath, 0755)
+		err := os.MkdirAll(LogPath, os.ModeDir)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -86,7 +122,6 @@ func (k *kamemaru) setup() *kamemaru {
 		if err != nil {
 			log.Fatalf("failed to create rotatelogs: %s", err)
 		}
-
 		defer f.Close()
 
 		k.setlogger(zap.AddSync(f))
@@ -94,7 +129,31 @@ func (k *kamemaru) setup() *kamemaru {
 		log.Fatal("kamemaru.Deploymode was not set")
 	}
 
-	k.use()
+	var (
+		err    error
+		config config
+	)
+	// Skip this process if already exist "config.toml"
+	if err = util.CreateConfig(); err != nil {
+		log.Fatalf("Failed to create config toml: %s", err.Error())
+	}
+
+	if _, err = toml.DecodeFile("config.toml", &config); err != nil {
+		log.Fatalf("Failed to parse config toml: %s", err.Error())
+	}
+
+	if k.DB, err = gorm.Open("postgres", dbconf(config)); err != nil {
+		log.Fatalf("Failed to connect database: %s", err.Error())
+	}
+
+	k.JWTSecret, err = saltissimo.RandomBytes(saltissimo.SaltLength)
+	if err != nil {
+		log.Fatalf("Failed to create secret: %s", err.Error())
+	}
+
+	if err = k.route(config); err != nil {
+		log.Fatalf("Failed to use middleware: %s", err.Error())
+	}
 
 	return k
 }
@@ -109,4 +168,33 @@ func (k *kamemaru) setlogger(Out zap.WriteSyncer) {
 
 func serve(server *http.Server, l net.Listener) error {
 	return server.Serve(l)
+}
+
+func dbconf(conf config) string {
+	var q string
+	if conf.DB.Host != "" {
+		q += "host=" + conf.DB.Host
+	}
+
+	if conf.DB.DBName != "" {
+		q += " dbname=" + conf.DB.DBName
+	}
+
+	if conf.DB.UserName != "" {
+		q += " user=" + conf.DB.UserName
+	}
+
+	if conf.DB.Password != "" {
+		q += " password=" + conf.DB.Password
+	}
+
+	if conf.DB.SSLmode != "" {
+		q += " sslmode=" + conf.DB.SSLmode
+	}
+
+	if conf.DB.Port > 0 {
+		q += fmt.Sprintf(" port=%d", conf.DB.Port)
+	}
+
+	return q
 }

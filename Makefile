@@ -1,5 +1,6 @@
 project = $(shell basename $(PWD))
 server = ./cmd/$(project)
+migrate = ./cmd/migrate
 import = github.com/Code-Hex/$(project)
 port = 8080
 pid = $(PWD)/kamemaru.pid
@@ -22,3 +23,7 @@ build-staging: bindata
 bindata:
 	@echo 'make bindata.go'
 	@go-bindata -pkg $(project) -o bindata.go assets/...
+
+migrate:
+	@go run $(migrate)/main.go
+	@echo 'DB Migrated'

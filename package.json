@@ -1,0 +1,48 @@
+{
+  "name": "kamemaru",
+  "version": "1.0.0",
+  "description": "simple web application",
+  "main": "index.js",
+  "scripts": {
+    "dev": "gulp build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Code-Hex/kamemaru.git"
+  },
+  "author": "Code-Hex",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Code-Hex/kamemaru/issues"
+  },
+  "homepage": "https://github.com/Code-Hex/kamemaru#readme",
+  "dependencies": {
+    "jquery": "^3.1.1",
+    "vue": "^2.1.8",
+    "vue-resource": "^1.0.3",
+    "whatwg-fetch": "^2.0.1"
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.18.0",
+    "babelify": "^7.3.0",
+    "browserify": "^13.3.0",
+    "gulp": "^3.9.1",
+    "vinyl-source-stream": "^1.1.0"
+  },
+  "browserify": {
+    "transform": [
+      [
+        "babelify",
+        {
+          "presets": [
+            "es2015"
+          ]
+        }
+      ]
+    ]
+  },
+  "browser": {
+    "vue": "vue/dist/vue.common"
+  }
+}
