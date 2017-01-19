@@ -11,14 +11,26 @@ import (
 	"github.com/Code-Hex/kamemaru/internal/database"
 	"github.com/Code-Hex/saltissimo"
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/k0kubun/pp"
 	"github.com/labstack/echo"
 	"golang.org/x/sync/errgroup"
 )
 
-type Image struct {
-	Offset int `query:"offset"`
-}
+type (
+	User struct {
+		Username string `validate:"required"`
+		Password string `validate:"min=8,max=16"`
+	}
+
+	Image struct {
+		Offset int `query:"offset"`
+	}
+
+	filedata struct {
+		buf       []byte
+		filename  string
+		extension string
+	}
+)
 
 func (k *kamemaru) imgfetch(c echo.Context) error {
 	img := new(Image)
@@ -36,11 +48,6 @@ func (k *kamemaru) imgfetch(c echo.Context) error {
 	return c.JSON(http.StatusOK, imgs)
 }
 
-type User struct {
-	Username string `validate:"required"`
-	Password string `validate:"min=8,max=16"`
-}
-
 // success: 201 failed: 409
 func (k *kamemaru) register(c echo.Context) (err error) {
 	u := new(User)
@@ -48,7 +55,6 @@ func (k *kamemaru) register(c echo.Context) (err error) {
 		return c.JSON(http.StatusInternalServerError, whyError(err))
 	}
 	if err = c.Validate(u); err != nil {
-		pp.Println(err.Error())
 		return c.JSON(http.StatusBadRequest, whyError(err))
 	}
 
@@ -103,12 +109,6 @@ func (k *kamemaru) login(c echo.Context) error {
 		return c.JSON(http.StatusOK, echo.Map{"status": "success", "token": t})
 	}
 	return c.JSON(http.StatusUnauthorized, whyError(fmt.Errorf("invalid user")))
-}
-
-type filedata struct {
-	buf       []byte
-	filename  string
-	extension string
 }
 
 func (k *kamemaru) Upload(c echo.Context) error {
