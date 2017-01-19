@@ -17,7 +17,7 @@ import (
 )
 
 type Image struct {
-	Offset int `query:"name"`
+	Offset int `query:"offset"`
 }
 
 func (k *kamemaru) imgfetch(c echo.Context) error {
