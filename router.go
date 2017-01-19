@@ -7,11 +7,6 @@ import (
 	"github.com/labstack/echo/middleware"
 )
 
-type List struct {
-	Text string   `json:"text"`
-	Tags []string `json:"tags"`
-}
-
 func (k *kamemaru) route(conf config) error {
 	// common middleware
 	k.use()
