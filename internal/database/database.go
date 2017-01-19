@@ -29,3 +29,13 @@ type Image struct {
 func IsExistUser(db *gorm.DB, username string) bool {
 	return !db.Where("name = ?", username).First(UserTable).RecordNotFound()
 }
+
+func GetImages(db *gorm.DB, limit, offset int) (imgs []Image) {
+	db.Where("deleted_at is null").Limit(limit).Offset(offset).Order("id desc").Find(&imgs)
+	return
+}
+
+func PickUser(db *gorm.DB, username string) (dbu *User) {
+	db.Where("name = ?", username).First(UserTable).Scan(&dbu)
+	return
+}

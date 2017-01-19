@@ -42,8 +42,7 @@ func (k *kamemaru) imgfetch(c echo.Context) error {
 		img.Offset = 1
 	}
 
-	var imgs []database.Image
-	k.DB.Where("deleted_at is null").Limit(20).Offset(img.Offset).Order("id desc").Find(&imgs)
+	imgs := database.GetImages(k.DB, 20, img.Offset)
 
 	return c.JSON(http.StatusOK, imgs)
 }
@@ -93,8 +92,7 @@ func (k *kamemaru) login(c echo.Context) error {
 
 	username, password := u.Username, u.Password
 
-	var dbu database.User
-	k.DB.Where("name = ?", username).First(database.UserTable).Scan(&dbu)
+	dbu := database.PickUser(k.DB, username)
 
 	isSame, err := saltissimo.CompareHexHash(sha256.New, password, dbu.Pass, dbu.Salt)
 	if err != nil {
@@ -143,9 +141,7 @@ func (k *kamemaru) Upload(c echo.Context) error {
 }
 
 func (k *kamemaru) createToken(username string) (string, error) {
-	var dbu database.User
-	k.DB.Where("name = ?", username).First(database.UserTable).Scan(&dbu)
-
+	dbu := database.PickUser(k.DB, username)
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = dbu.ID
