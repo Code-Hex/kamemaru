@@ -1,1 +1,79 @@
-<p>Hello</p>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" type="text/css">
+    <link rel="stylesheet" href="/static/css/main.css" type="text/css">
+    <title>imager</title>
+  </head>
+<body>
+<nav class="navbar navbar-default navbar-fixed-top">
+  <div id="navbar" class="navbar-collapse collapse">
+      <div class="container">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/">Imager</a>
+      </div>
+      <ul class="nav navbar-nav navbar-right">
+        <li v-if="!token">
+          <a href="#register" v-on:click="login($event)">Login</a>
+        </li>
+        <li v-else>
+          <a href="#register" v-on:click="logout($event)">Logout</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="user-modal-container" id="login-modal" v-on:click="close">
+  <div class="user-modal">
+    <ul class="form-switcher">
+      <li v-on:click="flip('register', $event)">
+        <a href="" id="register-form">Register</a>
+      </li>
+      <li v-on:click="flip('login', $event)">
+        <a href="" id="login-form">Login</a>
+      </li>
+    </ul>
+    <div class="form-register" id="form-register">
+      <div class="error-message" v-text="registerError"></div>
+      <input type="text" name="username" placeholder="Username" required="required" v-model="registerName" v-on:keyup.enter="submit('register', $event)">
+      <input type="password" name="password" placeholder="Password" required="required" v-model="registerPassword" v-on:keyup.enter="submit('register', $event)">
+      <input type="submit" v-on:click="submit('register', $event)" v-model="registerSubmit" id="registerSubmit">
+    </div>
+    <div class="form-login" id="form-login">
+      <div class="error-message" v-text="loginError"></div>
+      <input type="text" name="username" placeholder="Username" required="required" v-model="loginUser" v-on:keyup.enter="submit('login', $event)">
+      <input type="password" name="password" placeholder="Password" required="required" v-model="loginPassword" v-on:keyup.enter="submit('login', $event)">
+      <input type="submit" v-on:click="submit('login', $event)" v-model="loginSubmit" id="loginSubmit">
+    </div>
+    <div class="form-password" id="form-password">
+      <div class="error-message" v-text="passwordError"></div>
+      <input type="text" name="email" placeholder="Email" v-model="passwordEmail" v-on:keyup.enter="submit('password', $event)">
+      <input type="submit" v-on:click="submit('password', $event)" v-model="passwordSubmit" id="passwordSubmit">
+    </div>
+  </div>
+</div>
+<div class="content">
+  <div id="uploader" class="unvisible">
+    <form method="POST" enctype="multipart/form-data">
+    <div class="input-group">
+      <input @change="chooseImages" type="file" name="files" class="select btn btn-default" style="display: none;" multiple>
+      <div class="input-group">
+        <input type="text" id="selects" class="form-control" placeholder="selects..." disabled>
+        <span class="input-group-btn">
+          <button class="btn btn-default btn-info" type="button" v-on:click="select"><i class="glyphicon glyphicon-folder-open"></i></button>
+          <button type="button" class="btn btn-primary" v-on:click="submit">Upload images</button>
+        </span>     
+      </div>
+    </div>
+    </form>
+  </div>
+  <div id="app">
+    <a v-for="item in items" :href="item.OriginalURL" :alt="item.Name">
+      <img :src="item.Resize400URL">
+    </a>
+  </div>
+</div>
+<script src="/static/js/bundle.js"></script>
+</body>
+</html>

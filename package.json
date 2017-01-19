@@ -18,7 +18,9 @@
   },
   "homepage": "https://github.com/Code-Hex/kamemaru#readme",
   "dependencies": {
+    "jquery": "^3.1.1",
     "vue": "^2.1.8",
+    "vue-resource": "^1.0.3",
     "whatwg-fetch": "^2.0.1"
   },
   "devDependencies": {
@@ -33,12 +35,14 @@
       [
         "babelify",
         {
-          "presets": ["es2015"]
+          "presets": [
+            "es2015"
+          ]
         }
       ]
     ]
- },
- "browser": {
+  },
+  "browser": {
     "vue": "vue/dist/vue.common"
   }
 }

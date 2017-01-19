@@ -29,3 +29,4 @@ kamemaru
 bindata.go
 node_modules
 config.toml
+assets/js/bundle.js
