@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -149,10 +150,52 @@ func (k *kamemaru) login(c echo.Context) error {
 	return c.JSON(http.StatusUnauthorized, whyError(fmt.Errorf("invalid user")))
 }
 
+type filedata struct {
+	buf       []byte
+	filename  string
+	extension string
+}
+
+func (k *kamemaru) Upload(c echo.Context) error {
+	form, err := c.MultipartForm()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, whyError(err))
+	}
+	pp.Println(form)
+
+	files := form.File["files"]
+	if len(files) == 0 {
+		return c.JSON(http.StatusBadRequest, whyError(fmt.Errorf("The request form is empty")))
+	}
+
+	g, ctx := errgroup.WithContext(context.Background())
+
+	fdata := make(chan filedata)
+	fh := make(chan *multipart.FileHeader)
+
+	g.Go(ReadUploadedFiles(ctx, c, fdata, fh))
+	g.Go(k.StoreImageFiles(ctx, c, fdata))
+	for _, file := range files {
+		fh <- file
+	}
+	close(fh)
+
+	if err := g.Wait(); err != nil {
+		// return json error
+		return err
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{"status": "success"})
+}
+
 func (k *kamemaru) createToken(username string) (string, error) {
+	var dbu database.User
+	k.DB.Where("name = ?", username).First(database.UserTable).Scan(&dbu)
+
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["user"] = username
+	claims["id"] = dbu.ID
+	claims["user"] = dbu.Name
 	claims["iat"] = time.Now().Unix()
 	claims["exp"] = time.Now().Add(time.Hour * 36).Unix()
 

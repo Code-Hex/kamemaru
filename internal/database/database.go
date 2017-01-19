@@ -18,6 +18,7 @@ type User struct {
 
 type Image struct {
 	gorm.Model
+	UserID      uint
 	Name        string `gorm:"type:varchar(255);not null"`
 	Ext         string `gorm:"type:varchar(16);not null"`
 	Hash        string `gorm:"type:varchar(255);not null"`

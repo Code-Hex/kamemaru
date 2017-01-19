@@ -28,6 +28,7 @@ func (k *kamemaru) route(conf config) error {
 		return c.String(http.StatusOK, "OK")
 	})
 
+	api.POST("/upload", k.Upload)
 	api.POST("/list", k.List)
 	api.POST("/download", k.YoutubeDownload)
 

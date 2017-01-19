@@ -27,11 +27,11 @@ func IsBMP(buf []byte) bool {
 		buf[0] == 0x42 && buf[1] == 0x4D
 }
 
-func IsImage(buf []byte) bool {
-	for _, v := range imageList {
+func IsImage(buf []byte) (string, bool) {
+	for t, v := range imageList {
 		if v(buf) {
-			return true
+			return t, true
 		}
 	}
-	return false
+	return "", false
 }
