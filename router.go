@@ -21,16 +21,15 @@ func (k *kamemaru) route(conf config) error {
 	k.Echo.POST("/login", k.login)
 
 	// backend api
-	api := k.Echo.Group("/api/v1")
+	k.Echo.GET("/api/fetch", k.imgfetch)
 
+	api := k.Echo.Group("/api/v1")
 	api.Use(middleware.JWT(k.JWTSecret))
 	api.GET("", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
 
 	api.POST("/upload", k.Upload)
-	api.POST("/list", k.List)
-	api.POST("/download", k.YoutubeDownload)
 
 	return nil
 }
