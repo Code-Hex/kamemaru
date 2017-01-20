@@ -15,3 +15,25 @@ Imgur ライクなサービスを作成する。
  - [ ] テストの作成
  - [ ] フィルターの実装
  - [ ] Streaming API の実装（リアルタイムでアップロードされたファイルを見る）
+
+# How to build
+
+## Frontend
+
+    npm run dev
+
+## Backend
+
+- development: `make build-dev`
+- staging: `make build-staging`
+
+## DB migration
+
+    make migrate
+    
+## Run
+
+    make run
+    make stop
+    make restart
+  
